@@ -1,20 +1,20 @@
-//------------------------------------------------------------------------------
-// Chat Menu Function
-//
-// Creates the user interface for the client-server chat program.
-//
-// Created: 2013-10-18
-// Revised:
-//------------------------------------------------------------------------------
+/**-----------------------------------------------------------------------------
+	* Chat Menu Function
+	*
+	* Creates the user interface for the client-server chat program.
+	*
+	* Created: 2013-10-18
+	* Revised:
+	*---------------------------------------------------------------------------*/
 
 #include "menu.h"
 
-//------------------------------------------------------------------------------
-// Main Menu
-// Prints the menu, secures and validates the input, returns the input to the
-// main program.
-// @return validated input
-//------------------------------------------------------------------------------
+/**-----------------------------------------------------------------------------
+	* Main Menu
+	* Prints the menu, secures and validates the input, returns the input to the
+	* main program.
+	* @return validated input
+	*---------------------------------------------------------------------------*/
 int
 menu ( void )
 {
@@ -34,13 +34,13 @@ menu ( void )
 	return choice ;
 }
 
-//------------------------------------------------------------------------------
-// Secures Input
-// Gets the input from the command line and returns it to the menu. Will
-// validate that the input is a number
-// @param  pointer to the choice value
-// @return the validity of the input (number or not)
-//------------------------------------------------------------------------------
+/**-----------------------------------------------------------------------------
+	* Secures Input
+	* Gets the input from the command line and returns it to the menu. Will
+	* validate that the input is a number
+	* @param  pointer to the choice value
+	* @return the validity of the input (number or not)
+	*---------------------------------------------------------------------------*/
 int
 get_input ( int * input )
 {
@@ -57,28 +57,28 @@ get_input ( int * input )
 	return FALSE ;
 }
 
-//------------------------------------------------------------------------------
-// Validates For Number
-// Checks that every character in the buffer is a digit so that it will be an
-// actual number.
-// @param  pointer to the buffer
-// @return the number in the buffer
-//------------------------------------------------------------------------------
+/**-----------------------------------------------------------------------------
+	* Validates For Number
+	* Checks that every character in the buffer is a digit so that it will be an
+	* actual number.
+	* @param  pointer to the buffer
+	* @return the number in the buffer
+	*---------------------------------------------------------------------------*/
 int
 validate_input ( char * str )
 {
 	unsigned int index ;
 	for ( index = 0 ; index < strlen ( str ) ; index ++ )
 	{
-		if ( !isdigit ( a[ str ] ) )
+		if ( !isdigit ( str[ index ] ) )
 			return FALSE ;
 	}
 	return TRUE;
 }
 
-//------------------------------------------------------------------------------
-// Prints the Menu
-//------------------------------------------------------------------------------
+/**-----------------------------------------------------------------------------
+	* Prints the Menu
+	*---------------------------------------------------------------------------*/
 void
 print_menu ( void )
 {
