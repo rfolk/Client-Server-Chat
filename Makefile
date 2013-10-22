@@ -7,14 +7,14 @@ TEST_MENU  = test_menu
 # compilers with one miscellaneous setting
 # -pipe: link in memory instead of temp files
 #CXX = g++ -pipe
-CC  = gcc -pipe
+CC  = gcc -std=c99 -pipe
 
 # compiler flags
 FLAGS    = -pedantic -ggdb -I$(INC_DIR) -I$(SRC_DIR)
 #CXXFLAGS = -std=c++0x $(FLAGS)
 CFLAGS   = -O2 $(FLAGS)
 
-LINKER   = gcc -pipe -o
+LINKER   = gcc -std=c99 -pipe -o
 
 #linking flags
 LDLIBS = -Wall -I$(INC_DIR) -I$(SRC_DIR) -lm
