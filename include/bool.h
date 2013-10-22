@@ -11,7 +11,7 @@
 #ifndef __BOOL_H__
 	#define __BOOL_H__
 
-	#define TRUE 0
-	#define FALSE 1
+	#define TRUE 1
+	#define FALSE 0
 
 #endif
