@@ -5,35 +5,61 @@
 void
 * process ( void * ptr )
 {
-	char * buffer ;
-	int len ;
+	message * msg = malloc ( sizeof ( message ) ) ;
 	connection_t * conn ;
+	int i = 1 ;
 	long addr = 0 ;
-
+	char ip_str[ 16 ] ;
+	char partner_name[ 80 ] ;
+	int partner_socket ;
 	if ( !ptr )
 		pthread_exit ( 0 ) ;
 	conn = ( connection_t * ) ptr ;
 
-	/* read length of message */
-	read ( conn->sock , &len , sizeof ( int ) ) ;
-
-	if ( len > 0 )
+	while ( TRUE )
 	{
-		addr = ( long ) ( ( struct sockaddr_in * )&conn->address )->sin_addr.s_addr ;
-		buffer = ( char * ) malloc ( ( len + 1 ) * sizeof ( char ) ) ;
-		buffer[ len ] = 0 ;
+			/* read length of message */
+		read ( conn->sock , msg , sizeof ( message ) ) ;
 
-		/* read message */
-		read ( conn->sock , buffer , len ) ;
+		switch ( msg->msg_type )
+		{
+			case 0 :
+				if ( check_user ( msg->payload ) )
+				{
+					addr = ( long ) ( ( struct sockaddr_in * )&conn->address )->sin_addr.s_addr ;
+					sprintf ( ip_str , "%d.%d.%d.%d" ,
+										( int ) ( ( addr       ) & 0xff ) ,
+										( int ) ( ( addr >>  8 ) & 0xff ) ,
+										( int ) ( ( addr >> 16 ) & 0xff ) ,
+										( int ) ( ( addr >> 24 ) & 0xff ) ) ;
+					FILE * fp = fopen ( CLIENT_LIST , "a" ) ;
+					/* print name of user */
+					fprintf ( fp , "%s " , msg->payload ) ;
+					/* print ip address of user */
+					fprintf ( fp , "%s ", ip_str ) ;
+					/* print port # of user */
+					fprintf ( fp , "%d " , ((struct sockaddr_in *)&conn->address)->sin_port) ;
+					/* print socket # of user */
+					fprintf ( fp , "%d\n", &conn->sock ) ;
+					fclose ( fp ) ;
+					msg->msg_type = 1 ;
+				}
+				else
+					msg->msg_type = -1 ;
+				msg->payload[ 0 ] = '\0' ;
+				write ( conn->sock , msg , sizeof ( message ) ) ;
+				printf ( "Run through: %d" , i++ ) ;
+				printf ( "weird\n" ) ;
+				break ;
+			case -2 :
+				strcpy( msg->payload , partner_name ) ;
+				strcat( msg->payload , " does not wish to chat with you.\n" ) ;
+				write ( conn->sock , msg , sizeof ( message ) ) ;
+			case 2 :
+				list_user ( conn->sock ) ;
+				break ;
+		}
 
-		/* print message */
-		printf ( "%d.%d.%d.%d: %s\n" ,
-			 ( int ) ( ( addr       ) & 0xff ) ,
-			 ( int ) ( ( addr >>  8 ) & 0xff ) ,
-			 ( int ) ( ( addr >> 16 ) & 0xff ) ,
-			 ( int ) ( ( addr >> 24 ) & 0xff ) ,
-			buffer ) ;
-		free ( buffer ) ;
 	}
 
 	/* close socket and clean up */
@@ -45,6 +71,10 @@ void
 int
 main ( int argc , char ** argv )
 {
+	/* clear out the client list at every run */
+	FILE * fp = fopen ( CLIENT_LIST , "w" );
+	fclose ( fp ) ;
+
 	int sock = -1 ;
 	struct sockaddr_in address ;
 	int port ;
@@ -92,7 +122,7 @@ main ( int argc , char ** argv )
 
 	printf ( "%s: ready and listening\n" , argv[ 0 ] ) ;
 
-	while ( 1 )
+	while ( TRUE )
 	{
 		/* accept incoming connections */
 		connection = ( connection_t * ) malloc ( sizeof ( connection_t ) ) ;
@@ -110,4 +140,41 @@ main ( int argc , char ** argv )
 	}
 
 	return 0 ;
+}
+
+int
+check_user ( char * str )
+{
+	FILE * fp ;
+	fp = fopen( CLIENT_LIST , "r" ) ;
+	char buffer[ 512 ] ;
+	int pos = 0 ;
+	while ( fscanf ( fp , "%s" , buffer ) == 1 )
+	{
+		pos ++ ;
+		if ( ( pos % 4 == 1 ) && strcmp ( str , buffer ) == 0 )
+			return FALSE ;
+	}
+	return TRUE ;
+}
+
+void
+list_user ( int sock )
+{
+	message * msg = malloc ( sizeof ( message ) ) ;
+	FILE * fp ;
+	fp = fopen( CLIENT_LIST , "r" ) ;
+	char buffer[ 512 ] ;
+	int pos = 0 ;
+	while ( fscanf ( fp , "%s" , buffer ) == 1 )
+	{
+		pos ++ ;
+		if ( pos % 4 == 1 )
+		{
+			msg->msg_type = 2 ;
+			strcpy ( msg->payload , buffer ) ;
+			write ( sock , msg , sizeof ( message ) ) ;
+		}
+	}
+	return ;
 }
