@@ -3,6 +3,10 @@
 # Binary files
 bin/
 
+server
+client
+connected_clients.txt
+
 # Object files
 *.o
 *.ko

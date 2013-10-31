@@ -1,24 +1,27 @@
 #ifndef __CHAT_SERVER__
 	#define __CHAT_SERVER__
 
-	#include <stdio.h>
-	#include <stdlib.h>
+	#include "bool.h"
+	#include "chat_message.h"
+	#include "connection_t.h"
+
 	#include <pthread.h>
-	#include <sys/socket.h>
 	#include <linux/in.h>
 	#include <unistd.h>
 
-	typedef struct
-	{
-		int sock ;
-		struct sockaddr address ;
-		int addr_len ;
-	} connection_t ;
+	#define CLIENT_LIST "connected_clients.txt"
 
 	void
 	* process ( void * ptr ) ;
 
 	int
 	main ( int argc , char ** argv ) ;
+
+	int
+	check_user ( char * str ) ;
+
+	void
+	list_user ( int sock ) ;
+
 
 #endif
