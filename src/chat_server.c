@@ -245,6 +245,9 @@ list_user ( int sock , message * msg )
 		}
 	}
 	printf ( "done");
+	msg->msg_type = 1 ;
+	msg->payload[ 0 ] = '\0' ;
+	write ( sock , msg , sizeof ( message ) ) ;
 	fclose ( fp ) ;
 }
 

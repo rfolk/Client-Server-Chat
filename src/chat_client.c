@@ -12,6 +12,7 @@
 #include "chat_client.h"
 
 message * msg ;
+int choice ;
 
 int
 main ( int argc , char ** argv )
@@ -112,12 +113,20 @@ client_read (void * s )
 	while ( TRUE )
 	{
 		read ( sock , msg , sizeof ( message ) ) ;
-		if ( msg->msg_type == 4 )
-			printf ( "%s\n" , msg->payload ) ;
-		else if ( msg->msg_type == 5 )
+		switch ( msg->msg_type )
 		{
-			pthread_exit ( ( void * ) 0 ) ;
-			return ;
+			case 1 :
+				choice = menu () ;
+				break ;
+			case 2 :
+			case 4 :
+				printf ( "%s\n" , msg->payload ) ;
+				break ;
+			case 5 :
+				pthread_exit ( ( void * ) 0 ) ;
+				break ;
+			default :
+				break ;
 		}
 	}
 }
@@ -127,11 +136,10 @@ client_write ( void * s )
 {
 	int sock=*((int *)s);
 
-	int choice ;
 	char buffer[ 512 ] ;
+	choice = menu () ;
 	while ( TRUE )
 	{
-		choice = menu () ;
 		switch ( choice )
 		{
 			case 1 :
