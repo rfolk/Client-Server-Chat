@@ -15,17 +15,34 @@
 	#include "chat_message.h"
 	#include "connection_t.h"
 	#include "menu.h"
+	#include "clear.h"
 
+	/*
 	#include <pthread.h>
 	#include <netdb.h>
+	#include <unistd.h>
+	#include <linux/in.h>
+	*/
+
+	#include<stdio.h>
+	#include<stdlib.h>
+	#include<unistd.h>
+	#include<string.h>
+	#include<sys/types.h>
+	#include<errno.h>
+	#include<sys/socket.h>
+	#include<netinet/in.h>
+	#include<arpa/inet.h>
+	#include<netdb.h>
+	#include<pthread.h>
 
 	int
 	main ( int argc , char ** argv ) ;
 
 	void *
-	client_read ( int sock ) ;
+	client_read ( void * s ) ;
 
 	void *
-	client_write ( int sock ) ;
+	client_write ( void * s ) ;
 
 #endif

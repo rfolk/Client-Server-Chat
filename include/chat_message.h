@@ -17,6 +17,7 @@
 
 	/**---------------------------------------------------------------------------
 		*	Message Types
+		*		-3 - Invalid partner
 		*		-2 - Chat Denied
 		*		-1 - Invalid message
 		*		 0 - Petition for Username
@@ -24,9 +25,11 @@
 		*		 2 - List of available users
 		*		 3 - Request Chat Connection
 		*		 4 - Chat Started
-		*		 5 - Message to Peer
-		*		 6 - End Chat
-		*		 7 - Disconnect
+		*		 5 - Chat Started other
+		*		 6 - Message to Peer
+		*		 7 - End Chat
+		*		 8 - End Chat other
+		*		 9 - Disconnect
 		*-------------------------------------------------------------------------*/
 	typedef struct
 	{

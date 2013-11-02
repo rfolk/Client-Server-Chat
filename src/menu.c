@@ -18,6 +18,7 @@
 int
 menu ( void )
 {
+	clear () ;
 	int choice ;
 	int valid = FALSE ;
 	do
@@ -26,7 +27,7 @@ menu ( void )
 		valid = get_input ( &choice ) ;
 		if ( choice > 3 || choice < 1 )
 		{
-			printf ( "Invalid choice." ) ;
+			printf ( "Invalid choiec." ) ;
 			valid = FALSE ;
 		}
 	}

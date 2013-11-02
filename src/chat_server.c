@@ -5,16 +5,15 @@
 void
 * process ( void * ptr )
 {
-	message * msg = malloc ( sizeof ( message ) ) ;
 	connection_t * conn ;
-	int i = 1 ;
-	long addr = 0 ;
-	char ip_str[ 16 ] ;
-	char partner_name[ 80 ] ;
+	conn = ( connection_t * ) ptr ;
+	message * msg = malloc ( sizeof ( message ) ) ;
+	message * tmp_msg = malloc ( sizeof ( message ) ) ;
+	user * this_user ;
+	char partner_name[ 512 ] ;
 	int partner_socket ;
 	if ( !ptr )
 		pthread_exit ( 0 ) ;
-	conn = ( connection_t * ) ptr ;
 
 	while ( TRUE )
 	{
@@ -26,44 +25,101 @@ void
 			case 0 :
 				if ( check_user ( msg->payload ) )
 				{
-					addr = ( long ) ( ( struct sockaddr_in * )&conn->address )->sin_addr.s_addr ;
-					sprintf ( ip_str , "%d.%d.%d.%d" ,
-										( int ) ( ( addr       ) & 0xff ) ,
-										( int ) ( ( addr >>  8 ) & 0xff ) ,
-										( int ) ( ( addr >> 16 ) & 0xff ) ,
-										( int ) ( ( addr >> 24 ) & 0xff ) ) ;
-					FILE * fp = fopen ( CLIENT_LIST , "a" ) ;
-					/* print name of user */
-					fprintf ( fp , "%s " , msg->payload ) ;
-					/* print ip address of user */
-					fprintf ( fp , "%s ", ip_str ) ;
-					/* print port # of user */
-					fprintf ( fp , "%d " , ((struct sockaddr_in *)&conn->address)->sin_port) ;
-					/* print socket # of user */
-					fprintf ( fp , "%d\n", &conn->sock ) ;
-					fclose ( fp ) ;
+					this_user = new_user ( ptr , msg->payload ) ;
 					msg->msg_type = 1 ;
+					msg->payload[ 0 ] = '\0' ;
+					write ( this_user->socket , msg , sizeof ( message ) ) ;
 				}
 				else
+				{
 					msg->msg_type = -1 ;
-				msg->payload[ 0 ] = '\0' ;
-				write ( conn->sock , msg , sizeof ( message ) ) ;
-				printf ( "Run through: %d" , i++ ) ;
-				printf ( "weird\n" ) ;
+					msg->payload[ 0 ] = '\0' ;
+					printf("set msg_type\n");
+					connection_t * conn = (connection_t *) ptr ;
+					write ( conn->sock , msg , sizeof ( message ) ) ;
+				}
 				break ;
 			case -2 :
-				strcpy( msg->payload , partner_name ) ;
-				strcat( msg->payload , " does not wish to chat with you.\n" ) ;
-				write ( conn->sock , msg , sizeof ( message ) ) ;
+				strcpy ( msg->payload , partner_name ) ;
+				strcat ( msg->payload , " does not wish to chat with you.\n" ) ;
+				partner_name[ 0 ] = '\0' ;
+				partner_socket = -1 ;
+				write ( this_user->socket , msg , sizeof ( message ) ) ;
 			case 2 :
-				list_user ( conn->sock ) ;
+				printf ( "huh? %d %p\n" , this_user->socket , (void *)msg ) ;
+				list_user ( this_user->socket , msg ) ;
+				printf( "%s\n listed" , this_user->name ) ;
+				break ;
+			case 3 :
+				partner_socket = get_partner_socket( msg->payload ) ;
+				if ( partner_socket == -1 )
+				{
+					msg->msg_type = -3 ;
+					strcat ( msg->payload , " is not a registered user.\n" ) ;
+					write ( this_user->socket, msg , sizeof ( message ) ) ;
+					list_user ( this_user->socket , msg ) ;
+				}
+				else
+				{
+					strcpy ( partner_name , msg->payload ) ;
+					// record partner name
+					// get partner socket
+					// record partner socket
+					// check with potential partner
+					// write payload is "initiator potential_partner"
+					strcpy ( msg->payload , this_user->name ) ;
+					write ( partner_socket , msg, sizeof ( message ) ) ;
+				}
+				break ;
+			case 4 : // chat accepted
+				// record partner name
+				strcpy ( partner_name , msg->payload ) ;
+				// get partner socket
+				// record partner socket
+				partner_socket = get_partner_socket ( partner_name ) ;
+				// need to pass 5 to partner then have it passed back.
+				tmp_msg->msg_type = 5 ;
+				write ( partner_socket , tmp_msg , sizeof ( message ) ) ;
+			case 5 :
+				// remove user from file
+				remove_user ( this_user->name ) ;
+				// write now chatting with user to partner
+				strcpy ( msg->payload , "Now chatting with " ) ;
+				strcat ( msg->payload , this_user->name ) ;
+				strcat ( msg->payload , ".\n" ) ;
+				write ( partner_socket , msg , sizeof ( message ) ) ;
+				break ;
+			case 6 :
+				tmp_msg->msg_type = 6 ;
+				// write "user: "
+				strcpy ( tmp_msg->payload , this_user->name ) ;
+				strcat ( tmp_msg->payload , ": " ) ;
+				write ( partner_socket , tmp_msg , sizeof ( message ) ) ;
+				// write message
+				strcat ( msg->payload , "\n" ) ;
+				write ( partner_socket , msg , sizeof ( message ) ) ;
+				break ;
+			case 7 :
+				// need to pass 8 to partner then have it passed back.
+				tmp_msg->msg_type = 8 ;
+				write ( partner_socket , tmp_msg , sizeof ( message ) ) ;
+			case 8 :
+				// add user to file
+				// remove partner
+				//	set partner name to null
+				//	set partner socket to -1
+				break ;
+			case 9 :
+				close ( this_user->socket ) ;
+				free ( conn ) ;
+				pthread_exit ( 0 ) ;
 				break ;
 		}
 
 	}
 
 	/* close socket and clean up */
-	close ( conn->sock ) ;
+	close ( this_user->socket ) ;
 	free ( conn ) ;
 	pthread_exit ( 0 ) ;
 }
@@ -145,36 +201,133 @@ main ( int argc , char ** argv )
 int
 check_user ( char * str )
 {
+	printf("checkuser\n");
 	FILE * fp ;
 	fp = fopen( CLIENT_LIST , "r" ) ;
 	char buffer[ 512 ] ;
 	int pos = 0 ;
 	while ( fscanf ( fp , "%s" , buffer ) == 1 )
 	{
-		pos ++ ;
-		if ( ( pos % 4 == 1 ) && strcmp ( str , buffer ) == 0 )
+		printf ("%d:%d %s\n" , pos , pos%4 , buffer ) ;
+		if ( ( pos % 4 == 0 ) && strcmp ( str , buffer ) == 0 )
+		{
+			printf ( "isauser\n");
+			fclose ( fp ) ;
 			return FALSE ;
+		}
+		pos ++ ;
 	}
+	printf("checkuserworks\n");
+	fclose ( fp ) ;
 	return TRUE ;
 }
 
 void
-list_user ( int sock )
+list_user ( int sock , message * msg )
 {
-	message * msg = malloc ( sizeof ( message ) ) ;
+	printf ( "Socket: %d Msg: %p\n" , sock , (void *)msg ) ;
 	FILE * fp ;
-	fp = fopen( CLIENT_LIST , "r" ) ;
+	printf ( "File pointer: %p\n" , (void*)fp);
+	fp = fopen ( CLIENT_LIST , "r" ) ;
 	char buffer[ 512 ] ;
 	int pos = 0 ;
+	printf ("The file is: %p" , (void *)fp ) ;
 	while ( fscanf ( fp , "%s" , buffer ) == 1 )
 	{
 		pos ++ ;
+		printf ( "%d beep" , pos ) ;
 		if ( pos % 4 == 1 )
 		{
+			printf ( "%s" , buffer ) ;
 			msg->msg_type = 2 ;
 			strcpy ( msg->payload , buffer ) ;
 			write ( sock , msg , sizeof ( message ) ) ;
 		}
 	}
-	return ;
+	printf ( "done");
+	fclose ( fp ) ;
+}
+
+int
+get_partner_socket ( char * str )
+{
+	int socket = -1 ;
+	FILE * fp ;
+	fp = fopen ( CLIENT_LIST , "r" ) ;
+	char buffer [ 512 ] ;
+	int pos = 0 ;
+	while ( fscanf ( fp , "%s" , buffer ) == 1 )
+	{
+		pos++ ;
+		if ( pos % 4 == 1 && strcmp ( str , buffer ) == 0 )
+		{
+			int temp1 , temp2 ;
+			fscanf ( fp , " %d %d %d" , &temp1 , &temp2 , &socket ) ;
+			fclose ( fp ) ;
+			return socket ;
+		}
+	}
+	fclose ( fp ) ;
+	return socket ;
+}
+
+void
+remove_user ( char * str )
+{
+	FILE * fp ;
+	fp = fopen ( CLIENT_LIST , "a" ) ;
+	fseek ( fp , 0 , SEEK_SET ) ;
+	fclose ( fp ) ;
+}
+
+user *
+new_user ( void * ptr , char * str )
+{
+	printf ("open new user \n");
+	connection_t * conn ;
+	conn = ( connection_t * ) ptr ;
+	user * this_user ;
+	if ( !head )
+		head = malloc ( sizeof ( user ) ) ;
+
+	this_user = head ;
+	while ( this_user->next )
+		this_user = this_user->next ;
+	this_user->next = malloc ( sizeof ( user ) ) ;
+
+	strcpy ( this_user->name , str ) ;
+	this_user->socket = conn->sock ;
+	this_user->port = ((struct sockaddr_in *)&conn->address)->sin_port ;
+
+	long addr = 0 ;
+	char ip_str[ 16 ] ;
+
+	addr = ( long ) ( ( struct sockaddr_in * )&conn->address )->sin_addr.s_addr ;
+	sprintf ( ip_str , "%d.%d.%d.%d" ,
+						( int ) ( ( addr       ) & 0xff ) ,
+						( int ) ( ( addr >>  8 ) & 0xff ) ,
+						( int ) ( ( addr >> 16 ) & 0xff ) ,
+						( int ) ( ( addr >> 24 ) & 0xff ) ) ;
+	strcpy ( this_user->ip , ip_str ) ;
+
+	this_user->next = 0 ;
+	this_user->partner = 0 ;
+
+	add_user_to_list ( this_user ) ;
+	return this_user ;
+}
+
+void
+add_user_to_list ( user * u )
+{
+	FILE * fp = fopen ( CLIENT_LIST , "a" ) ;
+	/* print name of user */
+	fprintf ( fp , "%s " , u->name ) ;
+	/* print ip address of user */
+	fprintf ( fp , "%s ", u->ip ) ;
+	/* print port # of user */
+	fprintf ( fp , "%d " , u->port ) ;
+	/* print socket # of user */
+	fprintf ( fp , "%d\n", u->socket ) ;
+	fclose ( fp ) ;
 }

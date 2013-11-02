@@ -16,6 +16,7 @@
 	#include <string.h>
 
 	#include "bool.h"
+	#include "clear.h"
 
 	#define BUFF_SIZE 32
 

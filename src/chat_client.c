@@ -11,6 +11,8 @@
 
 #include "chat_client.h"
 
+message * msg ;
+
 int
 main ( int argc , char ** argv )
 {
@@ -18,12 +20,17 @@ main ( int argc , char ** argv )
 	int sock = -1 ;
 	struct sockaddr_in address ;
 	struct hostent * host ;
-	int len ;
+	int user = FALSE ;
+	msg = malloc ( sizeof ( message ) ) ;
+	char str[ 512 ] ;
+	pthread_t thread_read ;
+	pthread_t thread_write ;
+	connection_t * connection ;
 
 	/* checking commandline parameter */
-	if ( argc != 4 )
+	if ( argc != 3 )
 	{
-		printf ( "Run using: %s hostname port text\n" , argv[ 0 ] ) ;
+		printf ( "Run using: %s hostname port\n" , argv[ 0 ] ) ;
 		return -1 ;
 	}
 
@@ -60,13 +67,103 @@ main ( int argc , char ** argv )
 		return -5 ;
 	}
 
+	while ( user == FALSE )
+	{
+		msg->msg_type = 0 ;
+		printf ( "Choose an user name: " ) ;
+		scanf ( "%s" , str ) ;
+		clear () ;
+		if ( strcmp( str , "-1" ) == 0 )
+			break ;
+		strcpy ( msg->payload , str ) ;
+		//printf ( "%s\n" , str ) ;
+		write ( sock , msg , sizeof ( message ) ) ;
+		read ( sock , msg , sizeof ( message ) ) ;
+		if ( msg->msg_type == 1 )
+			user = TRUE ;
+		else if ( msg->msg_type == -1 )
+			printf ( "User already in use.\n" ) ;
+	}
+
+	pthread_create ( &thread_read , NULL , client_read , &sock ) ;
+	//pthread_detach ( thread_read );
+
+	pthread_create ( &thread_write , NULL , client_write , &sock ) ;
+	//pthread_detach ( thread_write );
+
+
+
 	/* send text to server */
-	len = strlen ( argv[ 3 ] ) ;
+	/*len = strlen ( argv[ 3 ] ) ;
 	write ( sock , &len , sizeof ( int ) ) ;
-	write ( sock , argv[ 3 ] , len ) ;
-
+	write ( sock , argv[ 3 ] , len ) ;*/
+  while (TRUE) ;
 	/* close socket */
-	close( sock ) ;
+	//close( sock ) ;
 
-	return 0 ;
+	//return 0 ;
+}
+
+void *
+client_read (void * s )
+{
+	int sock=*((int *)s);
+
+	while ( TRUE )
+	{
+		read ( sock , msg , sizeof ( message ) ) ;
+		if ( msg->msg_type == 4 )
+			printf ( "%s\n" , msg->payload ) ;
+		else if ( msg->msg_type == 5 )
+		{
+			pthread_exit ( ( void * ) 0 ) ;
+			return ;
+		}
+	}
+}
+
+void *
+client_write ( void * s )
+{
+	int sock=*((int *)s);
+
+	int choice ;
+	char buffer[ 512 ] ;
+	while ( TRUE )
+	{
+		choice = menu () ;
+		switch ( choice )
+		{
+			case 1 :
+				msg->msg_type = 2 ;
+				msg->payload[ 0 ] = '\0' ;
+				write ( sock , msg , sizeof ( message ) ) ;
+				printf ( "request list" ) ;
+				break ;
+			case 2 :
+				msg->msg_type = 3 ;
+				printf ( "User to chat with: " ) ;
+				scanf ( "%s" , buffer ) ;
+				clear () ;
+				strcpy ( msg->payload , buffer ) ;
+				write ( sock , msg , sizeof ( message ) ) ;
+				read ( sock , msg , sizeof ( message ) ) ;
+				if ( msg->msg_type == -1 )
+					break ;
+				while ( TRUE )
+				{
+					scanf ( "%s" , buffer ) ;
+					clear () ;
+					strcpy ( msg->payload , buffer ) ;
+					msg->msg_type = 4 ;
+					write ( sock , msg , sizeof ( message ) ) ;
+				}
+				break ;
+			case 3 :
+				pthread_exit ( ( void * ) 0 ) ;
+				return ;
+				break ;
+		}
+		return ;
+	}
 }
