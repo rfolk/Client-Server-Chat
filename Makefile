@@ -11,4 +11,4 @@ client: src/chat_client.c src/menu.c src/clear.c
 
 
 #gcc -std=c99 -pipe -pedantic -ggdb -Iinclude -Wall -o bin/server src/chat_server.c -lpthread
-#gcc -std=c99 -pipe -pedantic -ggdb -Iinclude -Wall -o bin/client src/chat_client.c src/menu.c src/clear.c -lpthread
+#gcc -std=c99 -pipe -pedantic -ggdb -I./include -Wall -o bin/client src/chat_client.c src/clear.c -lpthread
