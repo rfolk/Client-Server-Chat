@@ -1,0 +1,4 @@
+# compiles
+
+gcc -std=c99 -pipe -pedantic -ggdb -Iinclude -Isrc -Wall -lpthread -o server chat_server.c
+gcc -std=c99 -pipe -pedantic -ggdb -Iinclude -Isrc -Wall -lpthread -o client chat_client.c menu.c clear.c

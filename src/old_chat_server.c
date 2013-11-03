@@ -44,88 +44,71 @@ void
 		recv ( this_user->socket , msg , sizeof ( message ) , 0 ) ;
 		switch ( msg->msg_type )
 		{
-			case 1 :
-				list_user ( this_user->socket , msg ) ;
-				msg->msg_type = -1 ;
-				msg->payload[ 0 ] = '\0' ;
-				send ( this_user->socket , msg , sizeof ( message ) , 0 ) ;
+			case -2 :
+				strcpy ( msg->payload , this_user->name ) ;
+				send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
+				this_user->partner->partner = NULL ;
+				this_user->partner = NULL ;
 				break ;
 			case 2 :
-				print_user ( this_user ) ;
-				printf ( "Wants to chat with: %s\n" , msg->payload ) ;
-				remove_from_file ( this_user->name ) ;
-				remove_from_file ( msg->payload ) ;
+				list_user ( this_user->socket , msg ) ;
+				msg->msg_type = 1 ;
+				msg->payload[ 0 ] = '\0' ;
+				send ( sock , msg , sizeof ( message ) , 0 ) ;
+				break ;
+			case 3 :
 				this_user->partner = add_partner ( msg->payload ) ;
 				if ( !this_user->partner )
 				{
-					printf ( "send denial\n" ) ;
 					msg->msg_type = -3 ;
 					msg->payload[ 0 ] = '\0' ;
 					//strcat ( msg->payload , " is not a registered user.\n" ) ;
-					add_user_to_file ( this_user ) ;
 					send ( this_user->socket, msg , sizeof ( message ) , 0 ) ;
+					list_user ( this_user->socket , msg ) ;
 					print_user ( this_user ) ;
 				}
 				else
 				{
-					msg->msg_type = -2 ;
-					printf ( "forward to user...\n" ) ;
 					this_user->partner->partner = this_user ;
-					printf("requestee\n");
-					print_user ( this_user ) ;
-					printf("requested\n");
-					print_user( this_user->partner );
-					printf("back again\n");
-					print_user( this_user->partner->partner );
 					strcpy ( msg->payload , this_user->name ) ;
 					send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
 				}
 				break ;
-			case 3 :
-				msg->msg_type = -3 ;
-				send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
-				add_user_to_file ( this_user ) ;
-				add_user_to_file ( this_user->partner ) ;
-				this_user->partner->partner = NULL ;
-				this_user->partner = NULL ;
-				break ;
-			case 4 :
-				printf ( "Got the 4!\n" ) ;
-				msg->msg_type = -4 ;
+			case 4 : // chat accepted
+				remove_from_file ( this_user->name ) ;
+				remove_from_file ( this_user->partner->name ) ;
+				msg->msg_type = 6 ;
 				strcpy ( msg->payload , "Now chatting with " ) ;
+				strcat ( msg->payload , this_user->partner->name ) ;
+				strcat ( msg->payload , "." ) ;
 				send ( this_user->socket , msg , sizeof ( message ) , 0 ) ;
-				send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
-				strcpy ( msg->payload , this_user->name ) ;
-				send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
-				strcpy ( msg->payload , this_user->partner->name ) ;
-				send ( this_user->socket , msg , sizeof ( message ) , 0 ) ;
-				strcpy ( msg->payload , "!\n" ) ;
-				msg->msg_type = -5 ;
-				send ( this_user->socket , msg , sizeof ( message ) , 0 ) ;
-				send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
-				break ;
-			case 5 :
-				// write "user: "
-				tmp_msg->msg_type = -5 ;
-				strcpy ( tmp_msg->payload , this_user->name ) ;
-				send ( this_user->partner->socket , tmp_msg , sizeof ( message ) , 0 ) ;
-				strcat ( tmp_msg->payload , ": " ) ;
-				send ( this_user->partner->socket , tmp_msg , sizeof ( message ) , 0 ) ;
-				// write message
-				msg->msg_type = -5 ;
+				strcpy ( msg->payload , "Now chatting with " ) ;
+				strcat ( msg->payload , this_user->name ) ;
+				strcat ( msg->payload , "." ) ;
 				send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
 				break ;
 			case 6 :
+				tmp_msg->msg_type = 6 ;
+				// write "user: "
+				strcpy ( tmp_msg->payload , this_user->name ) ;
+				strcat ( tmp_msg->payload , ": " ) ;
+				send ( this_user->partner->socket , tmp_msg , sizeof ( message ) , 0 ) ;
+				// write message
+				send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
+				break ;
+			case 7 :
 				// add user to file
 				add_user_to_file ( this_user ) ;
 				add_user_to_file ( this_user->partner ) ;
-				msg->msg_type = -6 ;
+				msg->msg_type = 1 ;
+				strcpy ( msg->payload , "Chat ended." ) ;
+				send ( this_user->socket , msg , sizeof ( message ) , 0 ) ;
 				send ( this_user->partner->socket , msg , sizeof ( message ) , 0 ) ;
 				// remove partner
 				this_user->partner->partner = NULL ;
-			 	this_user->partner = NULL ;
+				this_user->partner = NULL ;
 				break ;
-			case 10 :
+			case 9 :
 				close ( this_user->socket ) ;
 				remove_user ( this_user ) ;
 				pthread_exit ( 0 ) ;
@@ -250,7 +233,7 @@ list_user ( int sock , message * msg )
 		pos ++ ;
 		if ( pos % 4 == 1 )
 		{
-			msg->msg_type = 0 ;
+			msg->msg_type = 2 ;
 			strcpy ( msg->payload , buffer ) ;
 			send ( sock , msg , sizeof ( message ) , 0 ) ;
 		}
@@ -264,15 +247,10 @@ add_partner ( char * str )
 	user * u = head ;
 	while ( u )
 	{
-		printf ( "add user: " ) ;
-		print_user ( u ) ;
 		if ( strcmp ( u->name , str ) != 0 )
 			u = u->next ;
 		else
-		{
-			printf ( "FOUND YOU!!\n" ) ;
 			return u ;
-		}
 	}
 	return FALSE ;
 }

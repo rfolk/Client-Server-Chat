@@ -12,11 +12,8 @@
 #include "chat_client.h"
 
 int choice ;
-int block_flag ;
+//int write_flag ;
 int sock ;
-message * msg ;
-char str[ 512 ] ;
-char input ;
 
 int
 main ( int argc , char ** argv )
@@ -26,7 +23,8 @@ main ( int argc , char ** argv )
 	struct sockaddr_in address ;
 	struct hostent * host ;
 	int user = FALSE ;
-	msg = malloc ( sizeof ( message ) ) ;
+	message * msg = malloc ( sizeof ( message ) ) ;
+	char str[ 512 ] ;
 	pthread_t thread_read ;
 	pthread_t thread_write ;
 	//connection_t * connection ;
@@ -98,53 +96,82 @@ main ( int argc , char ** argv )
 	pthread_create ( &thread_write , NULL , client_write , &sock ) ;
 	//pthread_detach ( thread_write );
 
-  while (TRUE) ;
 
-	return 0 ;
+
+	/* send text to server */
+	/*len = strlen ( argv[ 3 ] ) ;
+	write ( sock , &len , sizeof ( int ) ) ;
+	write ( sock , argv[ 3 ] , len ) ;*/
+  while (TRUE) ;
+	/* close socket */
+	//close( sock ) ;
+
+	//return 0 ;
 }
 
 void *
 client_read (void * s )
 {
+	message * msg = malloc ( sizeof ( message ) ) ;
 	sock = *((int *)s);
+
+	choice = menu () ;
+	//write_flag = 1 ;
 
 	while ( TRUE )
 	{
 		recv ( sock , msg , sizeof ( message ) , 0 ) ;
 		switch ( msg->msg_type )
 		{
-			case 0 :
+			case 1 :
 				printf ( "%s\n" , msg->payload ) ;
-				break ;
-			case -1 :
-				block_flag = FALSE ;
-				break ;
-			case -2 :
-				printf ( "Would you like to chat with " );
-				printf ( "%s: y/n\n" , msg->payload ) ;
-				scanf ( "%c" , &input ) ;
-/*				block_flag = TRUE ;
-				msg->payload[ 0 ] = '\0' ;
-				send ( sock , msg , sizeof ( message ) , 0 ) ;
-				block_flag = FALSE ;*/
-				break ;
-			case -3 :
-				printf ( "Chat denied.\n" ) ;
-				block_flag = FALSE ;
-				break ;
-			case -4 :
-				printf( "%s\n" , msg->payload ) ;
-				break ;
-			case -5 :
-				printf( "%s" , msg->payload ) ;
-				block_flag = FALSE ;
-				break ;
-			case -6 :
-				printf ( "Chat ended.\n" ) ;
-				print_menu () ;
-				scanf ( "%c" , &input ) ;
+				choice = menu () ;
+				//write_flag = 1 ;
 				break ;
 
+			case 3 :
+				//write_flag = 1;
+				choice = 4;
+				printf ( "Would you like to chat with " ) ;
+				printf ( "%s" , msg->payload ) ;
+				printf ( ": y/n\n" ) ;
+				break;
+			case 2 :
+				printf ( "%s\n" , msg->payload ) ;
+				//write_flag = 0;
+				break;
+			/*
+			case 4 :
+				printf ( "%s\n" , msg->payload ) ;
+				break ;
+
+			case 5 :
+				write_flag = 1;
+				choice = 5;
+			*/
+			//case 8 :
+			//	send ( sock, msg, sizeof ( message ) , 0 ) ;
+			//	break ;
+
+			case 6 :
+				printf ( "%s\n" , msg->payload ) ;
+				//write_flag = 1;
+				choice = 5;
+				break;
+
+			case -3 :
+				printf ( "That is not a registered user.\n" ) ;
+				//write_flag = 1;
+				choice = 1;
+				break;
+			case -2 :
+				printf ( "%s does not want to chat.\n" , msg->payload ) ;
+				//write_flag = 1;
+				choice = menu();
+				break;
+
+			default :
+				break ;
 		}
 	}
 }
@@ -152,69 +179,89 @@ client_read (void * s )
 void *
 client_write ( void * s )
 {
+	message * msg = malloc ( sizeof ( message ) ) ;
 	sock = *((int *)s);
 
-	print_menu () ;
-	scanf ( "%c" , &input ) ;
-
+	//char buffer[ 512 ] ;
 	while ( TRUE )
 	{
-		handle_input ();
-		switch ( choice )
+		if ( choice == 1 )
 		{
-			case 1 :
-				printf ("made it.");
-				msg->msg_type = 1 ;
-				msg->payload[ 0 ] = '\0' ;
-				send ( sock , msg , sizeof ( message ) , 0 ) ;
-				block_flag = TRUE ;
-				while ( block_flag ) ;
-				print_menu () ;
-				scanf ( "%c" , &input ) ;
-				break ;
-
-			case 3 :
-				msg->msg_type = 10 ;
-				msg->payload[ 0 ] = '\0' ;
-				send ( sock , msg , sizeof ( message ) , 0 ) ;
-				exit ( 0 ) ;
-				break ;
-
-			case 2 :
-				msg->msg_type = 1 ;
-				msg->payload[ 0 ] = '\0' ;
-				block_flag = TRUE ;
-				send ( sock , msg , sizeof ( message ) , 0 ) ;
-				while ( block_flag ) ;
-				block_flag = TRUE ;
-				printf ( "before type change \n");
-				msg->msg_type = 2 ;
-				printf ( "after type change \n");
-				printf ( "Choose a user to chat with: \n" ) ;
-				scanf ( "%s" , msg->payload ) ;
-				//getline ( msg->payload , 512 , stdin ) ;
-				send ( sock , msg , sizeof ( message ) , 0 ) ;
-				while ( block_flag ) ;
-				//chat denied go back to menu
-				if ( msg->msg_type == 3 )
-				{
-					print_menu () ;
-					scanf ( "%c" , &input ) ;
-					break ;
-				}
-				choice = 5 ;
-				break ;
-			case 5 :
-				fgets ( msg->payload , 512 , stdin ) ;
-				//getline ( msg->payload , 512 , stdin ) ;
-				send ( sock , msg , sizeof ( message ) , 0 ) ;
-				break ;
-			case 6 :
-				msg->payload[ 0 ] = '\0' ;
-				send ( sock , msg , sizeof ( message ) , 0 ) ;
-			default :
-				break ;
+			msg->msg_type = 2 ;
+			msg->payload[ 0 ] = '\0' ;
+			send ( sock , msg , sizeof ( message ) , 0 ) ;
+			//printf ( "request list" ) ;
+			//write_flag = 0 ;
 		}
+		if ( choice == 2 )
+		{
+			msg->msg_type = 2 ;
+			msg->payload[ 0 ] = '\0' ;
+			send ( sock , msg , sizeof ( message ) , 0 ) ;
+			printf( "Who do you wish to chat with?\n" ) ;
+			msg->msg_type = 3 ;
+			getline ( msg->payload , 512 , stdin ) ;
+			send ( sock , msg , sizeof ( message ) , 0 ) ;
+		}
+		if ( choice == 3 )
+		{
+			msg->msg_type = 9 ;
+			msg->payload[ 0 ] = '\0' ;
+			send ( sock , msg , sizeof ( message ) , 0 ) ;
+			exit ( 0 ) ;
+		}
+		if ( choice == 4 )
+		{
+			//if yes send 4 if no send -2
+			char c = getchar();
+			if ( c == 'y' || c == 'Y' )
+			{
+				msg->msg_type = 4 ;
+				send ( sock , msg , sizeof ( message ) , 0 ) ;
+				//write_flag = 0 ;
+			}
+			else
+			{
+				msg->msg_type = -2 ;
+				send ( sock , msg , sizeof ( message ) , 0 ) ;
+				//write_flag = 0 ;
+			}
+		}
+		if ( choice == 5 )
+		{
+			getline ( msg->payload , 512 , stdin ) ;
+			send ( sock , msg , sizeof ( message ) , 0 ) ;
+		}
+
+		// switch ( write_flag )
+		// {
+		// 	case 1 :
+		// 		break ;
+		// 	case 2 :
+		// 		msg->msg_type = 3 ;
+		// 		printf ( "User to chat with: " ) ;
+		// 		scanf ( "%s" , buffer ) ;
+		// 		clear () ;
+		// 		strcpy ( msg->payload , buffer ) ;
+		// 		send ( sock , msg , sizeof ( message ) , 0 ) ;
+		// 		recv ( sock , msg , sizeof ( message ) , 0 ) ;
+		// 		if ( msg->msg_type == -1 )
+		// 			break ;
+		// 		while ( TRUE )
+		// 		{
+		// 			scanf ( "%s" , buffer ) ;
+		// 			clear () ;
+		// 			strcpy ( msg->payload , buffer ) ;
+		// 			msg->msg_type = 4 ;
+		// 			send ( sock , msg , sizeof ( message ) , 0 ) ;
+		// 		}
+		// 		break ;
+		// 	case 3 :
+		// 		pthread_exit ( ( void * ) 0 ) ;
+		// 		break ;
+		// 	default :
+		// 		break ;
+		// }
 	}
 }
 
@@ -227,50 +274,21 @@ catch_ctrlc ( int sig )
 	{
 		exit ( 0 );
 	}
-	else if ( choice == 5 )
+	else if ( choice == 4 )
 	{
-		msg->msg_type = 6 ;
+		msg->msg_type = 7 ;
 		msg->payload[ 0 ] = '\0' ;
 		send ( sock , msg , sizeof ( message ) , 0 ) ;
-		printf ( "Chat ended.\n" ) ;
-		print_menu () ;
-		scanf ( "%c" , &input ) ;
 	}
 	else
 	{
-		msg->msg_type = 10 ;
+		msg->msg_type = 9 ;
 		msg->payload[ 0 ] = '\0' ;
 		send ( sock , msg , sizeof ( message ) , 0 ) ;
 		exit ( 0 ) ;
 	}
 }
 
-void
-print_menu ( void )
-{
-	//printf ( "\n" ) ;
-	printf ( "1. List users\n" ) ;
-	printf ( "2. Chat\n" ) ;
-	printf ( "3. Exit\n" ) ;
-}
 
-void
-handle_input ( void )
-{
-	if ( input == '1' )
-		choice = 1 ;
-	else if ( input == '2' )
-		choice = 2 ;
-	else if ( input == '3' )
-		choice = 3 ;
-	else if ( input == 'y' || input == 'Y' )
-	{
-		msg->msg_type = 4 ;
-		choice = 6 ;
-	}
-	else
-	{
-		msg->msg_type = 3 ;
-		choice = 6 ;
-	}
-}
+
+

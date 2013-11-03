@@ -27,9 +27,10 @@ menu ( void )
 		valid = get_input ( &choice ) ;
 		if ( choice > 3 || choice < 1 )
 		{
-			printf ( "Invalid choiec." ) ;
+			printf ( "Invalid choice." ) ;
 			valid = FALSE ;
 		}
+		clear () ;
 	}
 	while ( valid == FALSE ) ;
 	return choice ;
@@ -83,9 +84,8 @@ validate_input ( char * str )
 void
 print_menu ( void )
 {
-	printf ( "\n" ) ;
+	//printf ( "\n" ) ;
 	printf ( "1. List users\n" ) ;
 	printf ( "2. Chat\n" ) ;
 	printf ( "3. Exit\n" ) ;
-	printf ( "\n" ) ;
 }

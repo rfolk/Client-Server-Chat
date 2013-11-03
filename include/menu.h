@@ -11,9 +11,18 @@
 	#define __MENU_H__
 
 	#include <ctype.h>
-	#include <stdio.h>
-	#include <stdlib.h>
-	#include <string.h>
+	#ifndef __STDIO_H__
+		#define __STDIO_H__
+		#include <stdio.h>
+	#endif
+	#ifndef __STDLIB_H__
+		#define __STDLIB_H__
+		#include <stdlib.h>
+	#endif
+	#ifndef __STRING_H__
+		#define __STRING_H__
+		#include <string.h>
+	#endif
 
 	#include "bool.h"
 	#include "clear.h"

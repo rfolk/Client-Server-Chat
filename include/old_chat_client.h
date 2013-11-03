@@ -14,7 +14,7 @@
 	#include "bool.h"
 	#include "chat_message.h"
 	#include "connection_t.h"
-	//#include "menu.h"
+	#include "menu.h"
 	#include "clear.h"
 
 	/*
@@ -56,12 +56,6 @@
 	client_write ( void * s ) ;
 
 	void
-	catch_ctrlc ( int sig ) ;
-
-	void
-	handle_input ( void ) ;
-
-	void
-	print_menu ( void ) ;
+	catch_ctrlc ( int sig );
 
 #endif
